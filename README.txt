@@ -3,8 +3,8 @@ Contributors: timersys
 Donate link: http://wp.timersys.com
 Tags: facebook, facebook login
 Requires at least: 3.6
-Tested up to: 4.2
-Stable tag: 1.0.0
+Tested up to: 4.2.2
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,33 +20,13 @@ There won't be any settings other than facebook app id and enable avatars. Any o
 Please contribute on [https://github.com/timersys/facebook-login](https://github.com/timersys/facebook-login)
 
 
-= Wordpress Popups  =
-
-Best popups plugin ever ([http://wp.timersys.com/popups/](http://wp.timersys.com/popups/?utm_source=fb-login-plugin&utm_medium=readme))
-
-= Geolocation plugin =
-
-Geotarget your users with [Geotargeting plugin](http://wp.timersys.com/geotargeting/)
-
-= Install Multiple plugins at once with WpFavs  =
-
-Bulk plugin installation tool, import WP favorites and create your own lists ([http://wordpress.org/extend/plugins/wpfavs/](http://wordpress.org/extend/plugins/wpfavs/))
-
-= Increase your twitter followers  =
-
-Increase your Twitter followers with Twitter likebox Plugin ([http://wordpress.org/extend/plugins/twitter-like-box-reloaded/](http://wordpress.org/extend/plugins/twitter-like-box-reloaded/))
-
-= Wordpress Social Invitations  =
-
-Enhance your site by letting your users send Social Invitations ([http://wp.timersys.com/wordpress-social-invitations/](http://wp.timersys.com/wordpress-social-invitations/?utm_source=social-popup&utm_medium=readme))
-
-
 == Installation ==
 
 
-1. Upload `facebook-login.php` to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Place `<?php do_action('plugin_name_hook'); ?>` in your templates
+1. Install plugin zip using `/wp-admin/plugin-install.php` directory
+2. Activate the plugin through the 'Plugins' menu in WordPress
+3. Place `<?php do_action('<?php do_action('facebook_login_button');?>` in your templates if you need it somewhere else than wp-login.php
+
 
 == Frequently Asked Questions ==
 
@@ -60,6 +40,10 @@ Nope really. The plugin is intended as a base for anyone needing facebook login
 1. button
 
 == Changelog ==
+
+= 1.0.1 =
+
+* Added facebook_login_button hook
 
 = 1.0.0 =
 * First version
