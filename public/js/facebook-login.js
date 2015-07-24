@@ -3,9 +3,9 @@
     // Thanks to Zane === zM Ajax Login & Register === for this bit
     $( document ).on( 'click', '.js-fbl', function( e ) {
         e.preventDefault();
-        var $form_obj       = $( this ).parents('form'),
+        var $form_obj       = $( this ).parents('form') || false,
             $this           = $( this),
-            $redirect_to    = $form_obj.find('input[name="redirect_to"]').val();
+            $redirect_to    = $form_obj.find('input[name="redirect_to"]').val() || false;
         $this.addClass('loading');
         FB.login( function( response ) {
             /**
@@ -22,7 +22,7 @@
                  * "me" refers to the current FB user, console.log( response )
                  * for a full list.
                  */
-                FB.api('/me', function(response) {
+                FB.api('/me?fields=first_name,last_name,email,link', function(response) {
                     var fb_response = response;
 
                     /**
