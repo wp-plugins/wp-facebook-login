@@ -76,6 +76,7 @@ class Facebook_Login_Public {
 		wp_localize_script( $this->plugin_name, 'fbl', apply_filters( 'fbl/js_vars', array(
 			'ajaxurl'      => admin_url('admin-ajax.php'),
 			'site_url'     => home_url(),
+			'scopes'       => 'email,public_profile',
 		)));
 	}
 
@@ -124,35 +125,64 @@ class Facebook_Login_Public {
 	public function login_or_register_user() {
 		check_ajax_referer( 'facebook-nonce', 'security' );
 
+		// Get user from Facebook with given access token
+		$fb_url = add_query_arg( array(
+			'fields'        =>  'id,first_name,last_name,email,link',
+			'access_token'  =>  $_POST['fb_response']['authResponse']['accessToken'],
+		), 'https://graph.facebook.com/v2.4/'.$_POST['fb_response']['authResponse']['userID'] );
+
+		$fb_response = wp_remote_get( $fb_url );
+
+		if( is_wp_error( $fb_response ) )
+			$this->ajax_response( array( 'error' => $fb_response->get_error_message() ) );
+
+		$fb_user = json_decode( wp_remote_retrieve_body( $fb_response ), true );
+
+		//check if user at least provided email
+		if( empty( $fb_user['email'] ) )
+			$this->ajax_response( array( 'error' => __('We need your email in order to continue. Please try loging again. ', $this->plugin_name ) ) );
+
 		// Map our FB response fields to the correct user fields as found in wp_update_user
 		$user = apply_filters( 'fbl/user_data_login', array(
-			'username'   => $_POST['fb_response']['id'],
-			'user_login' => $_POST['fb_response']['id'],
-			'first_name' => $_POST['fb_response']['first_name'],
-			'last_name'  => $_POST['fb_response']['last_name'],
-			'user_email' => $_POST['fb_response']['email'],
-			'user_url'   => $_POST['fb_response']['link'],
+			'fb_user_id' => $fb_user['id'],
+			'user_login' => $this->generateUsername( $fb_user ),
+			'first_name' => $fb_user['first_name'],
+			'last_name'  => $fb_user['last_name'],
+			'user_email' => $fb_user['email'],
+			'user_url'   => $fb_user['link'],
 			'user_pass'  => wp_generate_password(),
 		));
+
 		do_action( 'fbl/before_login', $user);
-		$status = array( 'error' => 'Invalid User');
-		if ( empty( $user['username'] ) )
+
+		$status = array( 'error' => __( 'Invalid User', $this->plugin_name ) );
+
+		if ( empty( $user['fb_user_id'] ) )
 			$this->ajax_response( $status );
 
-		$user_obj = get_user_by('email', $user['user_email']);
+		$user_obj = $this->getUserBy( $user );
+
+		$meta_updated = false;
 
 		if ( $user_obj ){
 			$user_id = $user_obj->ID;
 			$status = array( 'success' => $user_id);
+			// check if user email exist or update accordingly
+			if( empty( $user_obj->user_email ) )
+				wp_update_user( array( 'ID' => $user_id, 'user_email' => $user['user_email'] ) );
+
 		} else {
 			$user_id = $this->register_user( $user );
 			if( !is_wp_error($user_id) ) {
-				update_user_meta( $user_id, '_fb_user_id', $user['user_login'] );
+				update_user_meta( $user_id, '_fb_user_id', $user['fb_user_id'] );
+				$meta_updated = true;
 				$status = array( 'success' => $user_id);
 			}
 		}
 		if( is_numeric( $user_id ) ) {
 			wp_set_auth_cookie( $user_id, true );
+			if( !$meta_updated )
+				update_user_meta( $user_id, '_fb_user_id', $user['fb_user_id'] );
 			do_action( 'fbl/after_login', $user, $user_id);
 		}
 		$this->ajax_response( $status );
@@ -224,6 +254,45 @@ class Facebook_Login_Public {
 	private function ajax_response( $status ) {
 		wp_send_json( $status );
 		die();
+	}
+
+	/**
+	 * Try to retrieve an user by email or username
+	 *
+	 * @param $user array of username and pass
+	 *
+	 * @return false|WP_User
+	 */
+	private function getUserBy( $user ) {
+
+		$user_data = get_user_by('email', $user['user_email']);
+
+		if( ! $user_data )
+			$user_data = reset(
+				get_users(
+					array(
+						'meta_key'      => '_fb_user_id',
+						'meta_value'    => $user['user_login'],
+						'number'        => 1,
+						'count_total'   => false
+					)
+				)
+			);
+
+		return $user_data;
+	}
+
+	/**
+	 * Generated a friendly username for facebook users
+	 * @param $fb_user
+	 *
+	 * @return string
+	 */
+	private function generateUsername( $fb_user ) {
+		$email = explode( "@", $fb_user['email'] );
+		$id    = substr( $fb_user['id'], 0, 5 );
+
+		return $email[0] . '_' . $id;
 	}
 
 }
