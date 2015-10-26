@@ -74,7 +74,7 @@ class Facebook_Login {
 	public function __construct() {
 
 		$this->plugin_name  = 'facebook-login';
-		$this->version      = '1.0.0';
+		$this->version      = FBL_VERSION;
 		$this->opts         = get_option('fbl_settings');
 
 		$this->load_dependencies();
@@ -109,7 +109,7 @@ class Facebook_Login {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-facebook-login-settings.php';
 
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-facebook-login-public.php';
-
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-fbl-notices.php';
 
 		$this->loader = new Facebook_Login_Loader();
 
@@ -143,9 +143,11 @@ class Facebook_Login {
 	private function define_admin_hooks() {
 
 		$plugin_admin = new Facebook_Login_Admin( $this->get_plugin_name(), $this->get_version() );
+		$notices = new Fbl_Notices();
 
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_menu_items');
 		$this->loader->add_action( 'admin_init', $plugin_admin, 'create_settings');
+		$this->loader->add_action( 'admin_notices', $notices, 'rate_plugin' );
 	}
 
 	/**
@@ -161,11 +163,17 @@ class Facebook_Login {
 
 		if( !empty( $this->opts['fb_id'] ) ) {
 			$this->loader->add_action( 'login_form', $plugin_public, 'add_button_to_login_form' );
+			$this->loader->add_action( 'register_form', $plugin_public, 'add_button_to_login_form' );
 			$this->loader->add_action( 'login_head', $plugin_public, 'add_fb_scripts' );
 			$this->loader->add_action( 'login_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 			$this->loader->add_action( 'login_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 			$this->loader->add_action( 'wp_ajax_fbl_facebook_login', $plugin_public, 'login_or_register_user' );
 			$this->loader->add_action( 'wp_ajax_nopriv_fbl_facebook_login', $plugin_public, 'login_or_register_user' );
+			$this->loader->add_action( 'facebook_login_button', $plugin_public, 'add_button_to_login_form' );
+			$this->loader->add_action( 'facebook_login_button', $plugin_public, 'add_fb_scripts' );
+			$this->loader->add_action( 'facebook_login_button', $plugin_public, 'enqueue_scripts' );
+			$this->loader->add_action( 'facebook_login_button', $plugin_public, 'enqueue_styles' );
+
 		}
 		if(  !empty( $this->opts['fb_avatars'] ) )
 			$this->loader->add_filter( 'get_avatar', $plugin_public, 'use_fb_avatars',10, 5 );
